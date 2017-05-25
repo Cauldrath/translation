@@ -26,11 +26,26 @@ converter(excelSheet, null, null,  function(err, data) {
     if (err) return console.log(err);
 
     var result = d;
+    //Make a first pass searching for exact matches
     data.forEach(function(element) {
       if(!element[fromLanguage]) return;
 
       try {
-        result = result.replace(element[fromLanguage], element[toLanguage]);
+        //Escape any characters with regex meanings
+        //Match any group of spaces to any other group of spaces
+        //Make all sentence ending punctuation at the end of a string optional
+        var regex = new RegExp(':\\s+"\\s*' + element[fromLanguage].trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&').replace(/\s+/g, '\\s+').replace(/\\([\.\?\!])$/, '\\$1?') + '\\s*"', 'ig');
+        result = result.replace(regex, ': "' + element[toLanguage].trim() + '"');
+      } catch(e) {};
+    });
+
+    //Make a second pass and translate partial matches
+    data.forEach(function(element) {
+      if(!element[fromLanguage]) return;
+
+      try {
+        var regex = new RegExp(':\\s+"\(\[\^"\]\*\)' + element[fromLanguage].trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&').replace(/\s+/g, '\\s+').replace(/\\([\.\?\!])$/, '\\$1?') + '\(\[\^"\]\*\)"', 'ig');
+        result = result.replace(regex, ': "$1' + element[toLanguage].trim() + '$2"');
       } catch(e) {};
     });
 
